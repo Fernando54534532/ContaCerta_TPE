@@ -1,0 +1,43 @@
+{
+  "name": "contacerta-tpe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ContaCerta - gerenciador de contas e tarefas financeiras (Ionic, Angular e Capacitor)",
+  "scripts": {
+    "start": "ng serve --host 0.0.0.0",
+    "build": "ng build --configuration production",
+    "build:dev": "ng build --configuration development",
+    "watch": "ng build --watch --configuration development",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@angular/animations": "~19.2.0",
+    "@angular/common": "~19.2.0",
+    "@angular/compiler": "~19.2.0",
+    "@angular/core": "~19.2.0",
+    "@angular/forms": "~19.2.0",
+    "@angular/platform-browser": "~19.2.0",
+    "@angular/platform-browser-dynamic": "~19.2.0",
+    "@angular/router": "~19.2.0",
+    "@capacitor-community/sqlite": "^7.0.3",
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@ionic/angular": "^8.0.0",
+    "ionicons": "^7.4.0",
+    "rxjs": "~7.8.1",
+    "tslib": "^2.6.2",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "~19.2.0",
+    "@angular/cli": "~19.2.0",
+    "@angular/compiler-cli": "~19.2.0",
+    "@capacitor/cli": "^7.0.0",
+    "typescript": "~5.7.3"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

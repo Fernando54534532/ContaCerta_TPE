@@ -1,0 +1,132 @@
+<ion-app>
+  <ion-content [fullscreen]="true" class="main-content">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand" role="img" aria-label="Logo do ContaCerta">
+          <span class="brand-mark"><ion-icon name="wallet-outline"></ion-icon></span>
+          <div><strong>Conta<span>Certa</span></strong><small>Seu financeiro, em dia.</small></div>
+        </div>
+        <div class="side-caption">MENU PRINCIPAL</div>
+        <nav class="side-nav" aria-label="Navegação principal">
+          <button type="button" [class.active]="screen === 'home'" (click)="go('home')"><ion-icon name="home-outline"></ion-icon> Visão geral</button>
+          <button type="button" [class.active]="screen === 'bills'" (click)="go('bills')"><ion-icon name="receipt-outline"></ion-icon> Minhas contas <span class="nav-count">{{ bills.length }}</span></button>
+          <button type="button" [class.active]="screen === 'form'" (click)="newBill()"><ion-icon name="add-outline"></ion-icon> Cadastrar conta</button>
+          <button type="button" [class.active]="screen === 'categories'" (click)="go('categories')"><ion-icon name="grid-outline"></ion-icon> Categorias</button>
+          <button type="button" [class.active]="screen === 'reports'" (click)="go('reports')"><ion-icon name="bar-chart-outline"></ion-icon> Relatórios</button>
+        </nav>
+        <div class="side-push"></div>
+        <div class="side-tip"><ion-icon name="information-circle-outline"></ion-icon><div><strong>Organize melhor</strong><p>Controle vencimentos, prioridades e seus pagamentos.</p></div></div>
+        <div class="side-footer">ContaCerta <span>· Projeto TPE</span></div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="topbar-left"><span class="topbar-dot"></span><span>CONTACERTA / <b>{{ screen === 'home' ? 'INÍCIO' : screen === 'bills' ? 'CONTAS' : screen === 'reports' ? 'RELATÓRIOS' : screen === 'categories' ? 'CATEGORIAS' : 'CADASTRO' }}</b></span></div>
+          <div class="topbar-right"><span class="today-text"><ion-icon name="calendar-outline"></ion-icon> {{ dateLabel }}</span><span class="avatar">CC</span></div>
+        </header>
+
+        <div class="screen-area">
+          <div *ngIf="loading" class="center-state"><ion-spinner name="crescent" color="primary"></ion-spinner><p>Carregando suas contas...</p></div>
+          <div *ngIf="!loading && storageError" class="center-state error-state"><ion-icon name="alert-circle-outline"></ion-icon><h2>Não foi possível carregar o aplicativo</h2><p>{{ storageError }}</p><button class="btn btn-primary" type="button" (click)="reload()">Tentar novamente</button></div>
+
+          <ng-container *ngIf="!loading && !storageError">
+            <!-- PAINEL INICIAL -->
+            <section *ngIf="screen === 'home'" class="page home-page">
+              <div class="page-heading"><div><div class="eyebrow">SEU PAINEL FINANCEIRO <span class="sparkle">✦</span></div><h1>Olá, bem-vindo! <span>👋</span></h1><p>Acompanhe suas contas e mantenha tudo sob controle.</p></div><button class="btn btn-primary heading-cta" type="button" (click)="newBill()"><ion-icon name="add-outline"></ion-icon> Nova conta</button></div>
+              <div class="hero-card">
+                <div class="hero-orb hero-orb-1"></div><div class="hero-orb hero-orb-2"></div>
+                <div class="hero-content"><div class="hero-kicker"><span class="hero-kicker-icon"><ion-icon name="wallet-outline"></ion-icon></span> TOTAL EM ABERTO</div><div class="hero-value">{{ money(pendingValue) }}</div><div class="hero-desc">Valor total das {{ pendingBills.length }} conta(s) que ainda precisam ser pagas.</div><button class="hero-link" type="button" (click)="go('bills')">Ver todas as contas <ion-icon name="arrow-forward-outline"></ion-icon></button></div>
+                <div class="hero-decoration"><span>R$</span><div class="decor-ring"></div></div>
+              </div>
+              <div class="stats-grid">
+                <div class="stat-card"><span class="stat-icon stat-orange"><ion-icon name="time-outline"></ion-icon></span><div class="stat-label">Pendentes</div><div class="stat-number">{{ pendingBills.length }} <span>contas</span></div><div class="stat-foot">Aguardando pagamento</div></div>
+                <div class="stat-card"><span class="stat-icon stat-green"><ion-icon name="checkmark-circle-outline"></ion-icon></span><div class="stat-label">Pagas</div><div class="stat-number">{{ paidBills.length }} <span>contas</span></div><div class="stat-foot">{{ money(paidThisMonth) }} neste mês</div></div>
+                <div class="stat-card"><span class="stat-icon stat-red"><ion-icon name="alert-circle-outline"></ion-icon></span><div class="stat-label">Vencidas</div><div class="stat-number">{{ overdueBills.length }} <span>contas</span></div><div class="stat-foot">{{ soonBills.length }} vencem nos próximos 7 dias</div></div>
+              </div>
+              <div class="section-heading"><div><h2>Próximos vencimentos</h2><p>Fique de olho nas suas próximas contas</p></div><button class="link-button" type="button" (click)="go('bills')">Ver todas <ion-icon name="chevron-forward-outline"></ion-icon></button></div>
+              <div class="bill-list" *ngIf="upcomingBills.length; else noUpcoming">
+                <article class="bill-row" *ngFor="let bill of upcomingBills">
+                  <div class="category-icon" [attr.data-category]="bill.category"><ion-icon [name]="categoryIcon(bill.category)"></ion-icon></div>
+                  <div class="bill-details"><strong>{{ bill.title }}</strong><span>{{ bill.category }} <span class="meta-sep">·</span> {{ shortDate(bill.dueDate) }}</span></div>
+                  <span class="bill-state" [class.overdue]="isOverdue(bill)" [class.due-today]="isDueToday(bill)">{{ dueLabel(bill) }}</span>
+                  <strong class="bill-amount">{{ money(bill.amount) }}</strong>
+                  <button class="round-action" type="button" [attr.aria-label]="'Editar ' + bill.title" (click)="editBill(bill)"><ion-icon name="chevron-forward-outline"></ion-icon></button>
+                </article>
+              </div>
+              <ng-template #noUpcoming><div class="empty-card"><ion-icon name="checkmark-done-outline"></ion-icon><h3>Tudo em dia!</h3><p>Você não tem contas pendentes. Cadastre uma nova conta para começar.</p></div></ng-template>
+              <div class="helper-bar"><span><ion-icon name="sparkles-outline"></ion-icon> DICA</span> Marque suas contas como pagas para acompanhar sua evolução.</div>
+            </section>
+
+            <!-- LISTA, BUSCA, FILTROS E CRUD -->
+            <section *ngIf="screen === 'bills'" class="page bills-page">
+              <div class="page-heading"><div><div class="eyebrow">ORGANIZAÇÃO</div><h1>Minhas contas</h1><p>Gerencie seus compromissos financeiros em um só lugar.</p></div><button class="btn btn-primary heading-cta" type="button" (click)="newBill()"><ion-icon name="add-outline"></ion-icon> Nova conta</button></div>
+              <div class="filter-panel"><label class="search-box"><ion-icon name="search-outline"></ion-icon><input type="search" [(ngModel)]="search" placeholder="Buscar por nome, categoria ou observação..." aria-label="Pesquisar contas"></label><select class="select-box" [(ngModel)]="categoryFilter" aria-label="Filtrar por categoria"><option value="Todas">Todas as categorias</option><option *ngFor="let category of categories" [value]="category">{{ category }}</option></select></div>
+              <div class="filter-row"><div class="filter-tabs"><button type="button" [class.selected]="statusFilter === 'todas'" (click)="statusFilter='todas'">Todas <span>{{ bills.length }}</span></button><button type="button" [class.selected]="statusFilter === 'pendentes'" (click)="statusFilter='pendentes'">Pendentes</button><button type="button" [class.selected]="statusFilter === 'pagas'" (click)="statusFilter='pagas'">Pagas</button><button type="button" [class.selected]="statusFilter === 'vencidas'" (click)="statusFilter='vencidas'">Vencidas</button></div><span class="result-count">{{ visibleBills.length }} resultado(s)</span></div>
+              <div *ngIf="visibleBills.length; else noBills" class="bill-list full-list">
+                <article class="bill-row full-row" *ngFor="let bill of visibleBills">
+                  <button class="check-circle" type="button" [class.checked]="bill.status === 'paga'" [attr.aria-label]="bill.status === 'paga' ? 'Reabrir ' + bill.title : 'Marcar ' + bill.title + ' como paga'" (click)="togglePaid(bill)"><ion-icon *ngIf="bill.status === 'paga'" name="checkmark-outline"></ion-icon></button>
+                  <div class="category-icon" [attr.data-category]="bill.category"><ion-icon [name]="categoryIcon(bill.category)"></ion-icon></div>
+                  <div class="bill-details"><strong [class.striked]="bill.status === 'paga'">{{ bill.title }}</strong><span>{{ bill.category }} <span class="meta-sep">·</span> {{ fullDate(bill.dueDate) }}</span><span class="priority-label" [attr.data-priority]="bill.priority"><i></i> Prioridade {{ priorityText(bill.priority) }}</span></div>
+                  <div class="bill-end"><strong class="bill-amount">{{ money(bill.amount) }}</strong><span class="bill-state" [class.paid]="bill.status === 'paga'" [class.overdue]="isOverdue(bill)" [class.due-today]="isDueToday(bill)">{{ dueLabel(bill) }}</span></div>
+                  <div class="row-actions"><button type="button" class="action-icon" [attr.aria-label]="'Editar ' + bill.title" (click)="editBill(bill)"><ion-icon name="pencil-outline"></ion-icon></button><button type="button" class="action-icon delete-icon" [attr.aria-label]="'Excluir ' + bill.title" (click)="deleteBill(bill)"><ion-icon name="trash-outline"></ion-icon></button></div>
+                </article>
+              </div>
+              <ng-template #noBills><div class="empty-card"><ion-icon name="search-outline"></ion-icon><h3>Nenhuma conta encontrada</h3><p>Altere os filtros ou cadastre uma nova conta.</p><div class="empty-buttons"><button class="btn btn-outline" type="button" (click)="clearFilters()">Limpar filtros</button><button class="btn btn-primary" type="button" (click)="newBill()">Nova conta</button></div></div></ng-template>
+            </section>
+
+            <!-- CATEGORIAS: acesso direto às contas por tipo -->
+            <section *ngIf="screen === 'categories'" class="page categories-page">
+              <div class="page-heading"><div><div class="eyebrow">ORGANIZAÇÃO POR TIPO</div><h1>Categorias</h1><p>Veja suas contas agrupadas e acesse rapidamente cada categoria.</p></div><button class="btn btn-primary heading-cta" type="button" (click)="newBill()"><ion-icon name="add-outline"></ion-icon> Nova conta</button></div>
+              <div class="categories-grid">
+                <button type="button" class="category-tile" *ngFor="let item of categoryOverview" (click)="showCategory(item.category)" [attr.aria-label]="'Ver contas de ' + item.category">
+                  <span class="tile-head"><span class="category-icon" [attr.data-category]="item.category"><ion-icon [name]="categoryIcon(item.category)"></ion-icon></span><ion-icon name="chevron-forward-outline" class="tile-arrow"></ion-icon></span>
+                  <strong>{{ item.category }}</strong>
+                  <span class="tile-count">{{ item.count }} conta(s) · {{ item.pending }} pendente(s)</span>
+                  <span class="tile-bottom"><small>Em aberto</small><b>{{ money(item.pendingValue) }}</b></span>
+                </button>
+              </div>
+              <div class="helper-bar"><span><ion-icon name="information-circle-outline"></ion-icon> DICA</span> Toque em uma categoria para visualizar e editar as contas correspondentes.</div>
+            </section>
+
+            <!-- RELATÓRIOS -->
+            <section *ngIf="screen === 'reports'" class="page reports-page">
+              <div class="page-heading"><div><div class="eyebrow">SEUS RESULTADOS</div><h1>Relatórios</h1><p>Entenda melhor a distribuição das suas contas.</p></div><button class="btn btn-primary heading-cta" type="button" (click)="newBill()"><ion-icon name="add-outline"></ion-icon> Nova conta</button></div>
+              <div class="report-cards"><div class="report-card"><div class="report-subtitle"><ion-icon name="wallet-outline"></ion-icon> Total pendente</div><strong>{{ money(pendingValue) }}</strong><span>{{ pendingBills.length }} conta(s) em aberto</span></div><div class="report-card"><div class="report-subtitle"><ion-icon name="checkmark-circle-outline"></ion-icon> Total pago</div><strong>{{ money(paidValue) }}</strong><span>{{ paidBills.length }} conta(s) concluídas</span></div></div>
+              <div class="reports-grid"><section class="panel report-category"><div class="panel-title"><div><h2>Gastos por categoria</h2><p>Distribuição do valor ainda pendente</p></div><span class="pill">Em aberto</span></div><ng-container *ngIf="categoryTotals.length; else emptyReport"><div class="category-progress" *ngFor="let item of categoryTotals"><div class="category-header"><span>{{ item.category }} <small>({{ item.count }})</small></span><strong>{{ money(item.total) }}</strong></div><div class="progress-track"><div class="progress-fill" [style.width.%]="categoryPercent(item.total)"></div></div></div></ng-container><ng-template #emptyReport><p class="empty-copy">Sem valores pendentes para mostrar.</p></ng-template></section><section class="panel"><div class="panel-title"><div><h2>Progresso geral</h2><p>Contas quitadas em relação ao total</p></div></div><div class="progress-circle" [style.--percent]="completionPercent + '%'" role="img" [attr.aria-label]="completionPercent + '% de contas pagas'"><div><strong>{{ completionPercent }}%</strong><span>concluído</span></div></div><div class="legend"><div><span class="legend-dot mint"></span> Pagas <strong>{{ paidBills.length }}</strong></div><div><span class="legend-dot muted"></span> Pendentes <strong>{{ pendingBills.length }}</strong></div><div><span class="legend-dot red"></span> Vencidas <strong>{{ overdueBills.length }}</strong></div></div></section></div>
+              <div class="helper-bar"><span><ion-icon name="information-circle-outline"></ion-icon> INFORMAÇÃO</span> Os relatórios são calculados a partir das contas salvas neste dispositivo.</div>
+            </section>
+
+            <!-- FORMULÁRIO -->
+            <section *ngIf="screen === 'form'" class="page form-page">
+              <button type="button" class="back-link" (click)="cancelEdit()"><ion-icon name="arrow-back-outline"></ion-icon> Voltar</button>
+              <div class="page-heading"><div><div class="eyebrow">{{ editingId ? 'ATUALIZAR CADASTRO' : 'NOVO CADASTRO' }}</div><h1>{{ editingId ? 'Editar conta' : 'Adicionar conta' }}</h1><p>Preencha as informações para organizar seus vencimentos.</p></div></div>
+              <form class="form-panel" (ngSubmit)="saveBill()" novalidate>
+                <div class="form-title"><span class="form-title-icon"><ion-icon name="receipt-outline"></ion-icon></span><div><strong>Informações da conta</strong><p>Os campos marcados com * são obrigatórios.</p></div></div>
+                <div class="field"><label for="billTitle">Descrição da conta *</label><input id="billTitle" name="billTitle" type="text" maxlength="100" [(ngModel)]="draft.title" placeholder="Ex.: Conta de luz, aluguel..." required autocomplete="off" /></div>
+                <div class="form-grid"><div class="field"><label for="billAmount">Valor (R$) *</label><input id="billAmount" name="billAmount" type="number" inputmode="decimal" min="0.01" step="0.01" [(ngModel)]="draft.amount" placeholder="0,00" required /></div><div class="field"><label for="billDue">Data de vencimento *</label><input id="billDue" name="billDue" type="date" [(ngModel)]="draft.dueDate" required /></div></div>
+                <div class="field"><label for="billCategory">Categoria *</label><select id="billCategory" name="billCategory" [(ngModel)]="draft.category"><option *ngFor="let category of categories" [ngValue]="category">{{ category }}</option></select></div>
+                <div class="field"><label>Prioridade *</label><div class="priority-options" role="group" aria-label="Prioridade"><button type="button" class="priority-choice" [class.active]="draft.priority === 'baixa'" (click)="draft.priority='baixa'"><span class="priority-circle low"></span> Baixa</button><button type="button" class="priority-choice" [class.active]="draft.priority === 'media'" (click)="draft.priority='media'"><span class="priority-circle medium"></span> Média</button><button type="button" class="priority-choice" [class.active]="draft.priority === 'alta'" (click)="draft.priority='alta'"><span class="priority-circle high"></span> Alta</button></div></div>
+                <div class="field"><label for="billNotes">Observações <small>(opcional)</small></label><textarea id="billNotes" name="billNotes" [(ngModel)]="draft.notes" rows="3" maxlength="500" placeholder="Informações adicionais sobre esta conta..."></textarea></div>
+                <p *ngIf="formError" class="form-error" role="alert"><ion-icon name="alert-circle-outline"></ion-icon> {{ formError }}</p>
+                <div class="form-actions"><button type="button" class="btn btn-outline" (click)="cancelEdit()">Cancelar</button><button type="submit" class="btn btn-primary" [disabled]="saving"><ion-icon [name]="saving ? 'time-outline' : 'checkmark-outline'"></ion-icon> {{ saving ? 'Salvando...' : (editingId ? 'Salvar alterações' : 'Cadastrar conta') }}</button></div>
+              </form>
+            </section>
+          </ng-container>
+        </div>
+        <footer class="workspace-footer"><span>© {{ today.slice(0,4) }} ContaCerta · Feito para organizar.</span><span>Projeto acadêmico TPE <span class="footer-point">●</span> Ionic + Angular</span></footer>
+      </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Navegação principal mobile">
+      <button type="button" [class.active]="screen === 'home'" (click)="go('home')"><ion-icon name="home-outline"></ion-icon><span>Início</span></button>
+      <button type="button" [class.active]="screen === 'bills'" (click)="go('bills')"><ion-icon name="receipt-outline"></ion-icon><span>Contas</span></button>
+      <button type="button" class="mobile-add" [class.active]="screen === 'form'" (click)="newBill()" aria-label="Cadastrar nova conta"><span class="mobile-add-icon"><ion-icon name="add-outline"></ion-icon></span><span>Cadastrar</span></button>
+      <button type="button" [class.active]="screen === 'categories'" (click)="go('categories')"><ion-icon name="grid-outline"></ion-icon><span>Categorias</span></button>
+      <button type="button" [class.active]="screen === 'reports'" (click)="go('reports')"><ion-icon name="bar-chart-outline"></ion-icon><span>Relatórios</span></button>
+    </nav>
+    <div *ngIf="notice" class="snackbar" role="status"><ion-icon name="checkmark-circle-outline"></ion-icon>{{ notice }}<button type="button" aria-label="Fechar aviso" (click)="notice = ''"><ion-icon name="close-outline"></ion-icon></button></div>
+  </ion-content>
+</ion-app>

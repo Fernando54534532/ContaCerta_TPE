@@ -1,0 +1,5 @@
+{
+  "name": "ContaCerta",
+  "type": "angular-standalone",
+  "integrations": { "capacitor": {} }
+}
